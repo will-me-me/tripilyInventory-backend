@@ -48,6 +48,12 @@ export class OrderController {
     return this.orderService.getCustomerOrders(id);
   }
 
+  @Get('status/:status')
+  async getOrdersByStatus(@Param('status') status: string) {
+    const uppercaseStatus = status.toUpperCase() as OrderStatus;
+    return this.orderService.getOrdersByStatus(uppercaseStatus);
+  }
+
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearAll(): Promise<void> {
