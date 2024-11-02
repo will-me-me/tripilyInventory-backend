@@ -37,6 +37,10 @@ export class OrderService {
 
       let productAvailability;
       try {
+        // for (const item of orderItems) {
+        //   console.log(item.quantity);
+        //   await
+        // }
         const response = await this.httpService
           .post('http://localhost:3002/api/inventory/check', orderItems)
           .toPromise();
@@ -92,6 +96,28 @@ export class OrderService {
         totalAmount,
         status: 'PENDING',
       });
+
+      for (const item of orderItems) {
+        try {
+          await this.httpService
+            .patch(
+              `http://localhost:3002/api/inventory/${item.productId}/quantity`,
+              {
+                quantity: item.quantity,
+              },
+            )
+            .toPromise();
+        } catch (quantityUpdateError) {
+          console.error(
+            `Failed to update quantity for product ${item.productId}:`,
+            quantityUpdateError,
+          );
+          throw new HttpException(
+            `Failed to update quantity for product ${item.productId}`,
+            HttpStatus.SERVICE_UNAVAILABLE,
+          );
+        }
+      }
 
       const savedOrder = await this.orderRepository.save(newOrder);
 
