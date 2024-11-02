@@ -1,14 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from 'src/entities/product.entity';
 import { CreateProductDto } from 'src/products/dto/create-product.dto';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getProductAvailability(productId: string): Promise<Product> {
@@ -48,6 +54,87 @@ export class InventoryService {
     });
     product.quantity = quantity;
     return this.productRepository.save(product);
+  }
+
+  async UpdateProductQuantity(
+    productId: string,
+    quantity: number,
+  ): Promise<Product> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const product = await queryRunner.manager.findOne(Product, {
+        where: { id: productId },
+        select: ['id', 'quantity', 'name'],
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!product) {
+        throw new HttpException(
+          `Product with ID ${productId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (product.quantity < quantity) {
+        throw new HttpException(
+          {
+            status: HttpStatus.BAD_REQUEST,
+            error: 'Insufficient stock',
+            details: {
+              productId,
+              productName: product.name,
+              requested: quantity,
+              available: product.quantity,
+            },
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const newQuantity = product.quantity - quantity;
+
+      const updatedProduct = await queryRunner.manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({
+          quantity: newQuantity,
+          updatedAt: new Date(),
+        })
+        .where('id = :id', { id: productId })
+        .returning('*')
+        .execute();
+
+      await queryRunner.commitTransaction();
+
+      console.log(
+        `Product ${productId} quantity updated from ${product.quantity} to ${newQuantity}`,
+      );
+
+      return updatedProduct.raw[0];
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      console.error('Error updating product quantity:', {
+        productId,
+        requestedQuantity: quantity,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'Failed to update product quantity',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async checkAvailability(items: { productId: string; quantity: number }[]) {
