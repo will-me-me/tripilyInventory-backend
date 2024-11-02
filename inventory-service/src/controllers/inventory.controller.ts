@@ -5,10 +5,14 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
+  // UsePipes,
+  // ValidationPipe,
 } from '@nestjs/common';
 import { CreateProductDto } from 'src/products/dto/create-product.dto';
+// import { UpdateProductQuantityDto } from 'src/products/dto/update-product-quantity.dto';
 import { InventoryService } from 'src/services/inventory.service';
 
 @Controller('/inventory')
@@ -52,5 +56,16 @@ export class InventoryController {
     @Body('quantity') quantity: number,
   ) {
     this.inventoryService.updateInventory(productId, quantity);
+  }
+
+  @Patch(':productId/quantity')
+  async updateInventory(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() updateData: { quantity: number },
+  ) {
+    return this.inventoryService.UpdateProductQuantity(
+      productId,
+      updateData.quantity,
+    );
   }
 }
