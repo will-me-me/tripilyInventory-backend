@@ -43,6 +43,11 @@ export class OrderController {
     return this.orderService.updateOrderStatus(id, status);
   }
 
+  @Get(':id/orders')
+  async getCustomerOrders(@Param('id') id: string) {
+    return this.orderService.getCustomerOrders(id);
+  }
+
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearAll(): Promise<void> {
