@@ -170,4 +170,11 @@ export class OrderService {
     order.status = status;
     return this.orderRepository.save(order);
   }
+
+  async getCustomerOrders(id: string): Promise<Order[]> {
+    const orders = this.orderRepository.find({
+      where: { customer: { id } },
+    });
+    return orders;
+  }
 }
