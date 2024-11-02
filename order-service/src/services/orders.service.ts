@@ -177,4 +177,10 @@ export class OrderService {
     });
     return orders;
   }
+  async getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
+    const orders = await this.orderRepository.find({
+      where: { status },
+    });
+    return orders;
+  }
 }
