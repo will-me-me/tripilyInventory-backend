@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,9 +12,15 @@ import { Order } from '../entities/order.entity';
 import { CreateOrderDto } from '../orders/dto/create-order.dto';
 import { OrderStatus } from '../orders/order-status.type';
 import { CustomerService } from './customer.service';
+import {
+  ClientProxy,
+  ClientProxyFactory,
+  Transport,
+} from '@nestjs/microservices';
 
 @Injectable()
-export class OrderService {
+export class OrderService implements OnModuleInit {
+  private client: ClientProxy;
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
@@ -21,6 +28,48 @@ export class OrderService {
     private readonly httpService: HttpService,
     private readonly dataSource: DataSource,
   ) {}
+
+  onModuleInit() {
+    this.client = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: ['amqp://localhost:5672'],
+        queue: 'inventory_queue',
+        queueOptions: {
+          durable: true,
+        },
+      },
+    });
+  }
+
+  async notifyInventoryService(orderData: any) {
+    try {
+      const response = await this.client
+        .send({ cmd: 'check_stock' }, orderData)
+        .toPromise();
+      console.log(
+        `Order notification sent for customer ${orderData.customerId}`,
+        response,
+      );
+    } catch (error) {
+      console.error('Failed to send order notification:', error);
+    }
+  }
+
+  async notifyInventoryServiceOnOrderUpdate(orderData: any) {
+    try {
+      const response = await this.client
+        .send({ cmd: 'update_order' }, orderData)
+        .toPromise();
+      console.log(
+        `Order notification sent for customer ${orderData.customerId} \n
+        The order has been ${orderData.status}`,
+        response,
+      );
+    } catch (error) {
+      console.error('Failed to send order notification:', error);
+    }
+  }
 
   async createNewOrder(orderData: CreateOrderDto): Promise<Order> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -37,10 +86,6 @@ export class OrderService {
 
       let productAvailability;
       try {
-        // for (const item of orderItems) {
-        //   console.log(item.quantity);
-        //   await
-        // }
         const response = await this.httpService
           .post('http://localhost:3002/api/inventory/check', orderItems)
           .toPromise();
@@ -124,6 +169,24 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       console.log('Order saved successfully:', savedOrder);
+
+      // Inform the inventory service that an order was placed
+      try {
+        await this.notifyInventoryService({
+          customerId,
+          totalAmount,
+          orderItems: orderItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        });
+        console.log(`Order notification sent for customer ${customerId}`);
+      } catch (orderNotificationError) {
+        console.error(
+          'Failed to send order notification:',
+          orderNotificationError,
+        );
+      }
       return savedOrder;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -168,7 +231,18 @@ export class OrderService {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
     order.status = status;
-    return this.orderRepository.save(order);
+    const updatedOrder = await this.orderRepository.save(order);
+    await this.notifyInventoryServiceOnOrderUpdate({
+      customerId: order.customer.id,
+      totalAmount: order.totalAmount,
+      orderItems: order.orderItems.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
+      status: order.status,
+    });
+
+    return updatedOrder;
   }
 
   async getCustomerOrders(id: string): Promise<Order[]> {
