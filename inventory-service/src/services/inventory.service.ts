@@ -17,6 +17,16 @@ export class InventoryService {
     private readonly dataSource: DataSource,
   ) {}
 
+  async checkStock(orderItems: { productId: string; quantity: number }[]) {
+    for (const item of orderItems) {
+      const product = await this.getProductAvailability(item.productId);
+      if (!product || product.quantity < item.quantity) {
+        return { isInStock: false, details: item };
+      }
+    }
+    return { isInStock: true, details: orderItems };
+  }
+
   async getProductAvailability(productId: string): Promise<Product> {
     try {
       const product = await this.productRepository.findOneByOrFail({
