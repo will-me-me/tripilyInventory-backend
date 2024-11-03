@@ -63,7 +63,7 @@ export class OrderService implements OnModuleInit {
         .toPromise();
       console.log(
         `Order notification sent for customer ${orderData.customerId} \n
-        The order has been ${orderData.status}`,
+          The order has been ${orderData.status}`,
         response,
       );
     } catch (error) {
