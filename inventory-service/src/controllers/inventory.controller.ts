@@ -42,7 +42,10 @@ export class InventoryController {
   @MessagePattern({ cmd: 'update_order' })
   async updateOnOrderStatus(orderData: any) {
     console.log(
-      `Order with ID: ${orderData.orderId} status updated. Status: ${orderData.status}`,
+      `Order with that belongs to: ${orderData.customerId} status has been updated updated.\n
+       Status: ${orderData.status}\n
+       totalAmount: ${orderData.totalAmount}\n
+       `,
     );
 
     if (orderData.orderItems && Array.isArray(orderData.orderItems)) {
