@@ -1,7 +1,3 @@
-Here's a comprehensive README template for your project, including descriptions for each microservice and examples of data transfer in JSON format.
-
----
-
 # Triply Backend Microservices
 
 This project consists of a set of microservices designed to handle different aspects of an application. Each microservice is responsible for specific functionalities, making the system modular and easier to maintain.
@@ -23,6 +19,54 @@ This project consists of a set of microservices designed to handle different asp
 ## Overview
 
 The Triply backend is designed as a set of microservices to support an e-commerce platform. It includes services for handling orders and inventory management, among other functionalities. Each service communicates through RESTful APIs and uses PostgreSQL as the database.
+
+Here's the updated Docker configuration README file with the correct port for the Order Service:
+
+## Prerequisites
+
+Ensure you have the following installed on your machine:
+
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+## Steps to Run the Project
+
+1. **Clone the Git Repository**
+
+   ```bash
+   git clone <repository-url>
+   cd triply-backend
+   ```
+
+2. **Start the Docker Containers**
+
+   - To start the PostgreSQL database and the necessary microservices, run:
+
+   ```bash
+   docker-compose up
+   ```
+
+3. **Access the Microservices**
+
+   - Each microservice will be accessible on its designated port. You can find the specific ports in the `docker-compose.yml` file.
+   - For example:
+     - **Inventory Service**: `http://localhost:3001`
+     - **Order Service**: `http://localhost:3000` _(corrected to 3000)_
+     - **Postgres Database**: `localhost:5432`
+
+4. **Stopping the Containers**
+   - To stop all running containers, use:
+   ```bash
+   docker-compose down
+   ```
+
+## Troubleshooting
+
+- **Port Conflicts**: If you encounter issues with ports being in use, ensure that no other applications are running on the specified ports. You may need to modify the ports in the `docker-compose.yml` file.
+- **Container Errors**: Check the logs for any container-specific errors using:
+  ```bash
+  docker-compose logs
+  ```
 
 ## Microservices
 
