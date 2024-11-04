@@ -5,13 +5,13 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: db
+      POSTGRES_DB: db # This is the database name we want to use
     ports:
       - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root"]
+      test: ["CMD-SHELL", "pg_isready -U root -d db"] # Updated to check the correct database
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,11 +19,11 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672" # RabbitMQ default port
-      - "15672:15672" # RabbitMQ management plugin
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: root
-      RABBITMQ_DEFAULT_PASS: root
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -38,16 +38,18 @@ services:
     environment:
       DB_TYPE: postgres
       DB_HOST: postgres
-      DB_PORT: 5433 # Update to match the host port for PostgreSQL
-      POSTGRES_USER: root
+      DB_PORT: 5432
       DB_USERNAME: root
       DB_PASSWORD: root
-      DB_DATABASE: db
-      RABBITMQ_HOST: rabbitmq # Set RabbitMQ host
+      DB_DATABASE: db # Make sure this matches POSTGRES_DB
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq: # Ensure RabbitMQ is available
+      rabbitmq:
         condition: service_healthy
     ports:
       - 3000:3000
@@ -58,16 +60,18 @@ services:
     environment:
       DB_TYPE: postgres
       DB_HOST: postgres
-      DB_PORT: 5432 # Update to match the host port for PostgreSQL
-      POSTGRES_USER: root
+      DB_PORT: 5432
       DB_USERNAME: root
       DB_PASSWORD: root
-      DB_DATABASE: db
-      RABBITMQ_HOST: rabbitmq # Set RabbitMQ host
+      DB_DATABASE: db # Make sure this matches POSTGRES_DB
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq: # Ensure RabbitMQ is available
+      rabbitmq:
         condition: service_healthy
     ports:
       - 3001:3001
@@ -75,4 +79,4 @@ services:
 
 volumes:
   postgres_data:
-  rabbitmq_data: # Volume for RabbitMQ data
+  rabbitmq_data:
