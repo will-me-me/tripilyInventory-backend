@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { InventoryService } from 'src/services/inventory.service';
 import { HttpException } from '@nestjs/common';

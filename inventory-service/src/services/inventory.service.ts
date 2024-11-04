@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -70,6 +71,10 @@ export class InventoryService {
   }
 
   async updateInventory(productId: string, quantity: number): Promise<Product> {
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be greater than zero');
+    }
+
     try {
       const product = await this.productRepository.findOneByOrFail({
         id: productId,
