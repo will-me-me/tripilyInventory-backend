@@ -10,6 +10,7 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { OrderService } from '../services/orders.service';
 import { CreateOrderDto } from '../orders/dto/create-order.dto';
@@ -40,6 +41,18 @@ export class OrderController {
     @Param('id') id: string,
     @Body('status') status: OrderStatus,
   ) {
+    const allowedStatuses: OrderStatus[] = [
+      'PENDING',
+      'CONFIRMED',
+      'SHIPPED',
+      'DELIVERED',
+    ];
+    if (!allowedStatuses.includes(status)) {
+      throw new BadRequestException(
+        `Invalid status: ${status}. Allowed statuses are: ${allowedStatuses.join(', ')}`,
+      );
+    }
+
     return this.orderService.updateOrderStatus(id, status);
   }
 
