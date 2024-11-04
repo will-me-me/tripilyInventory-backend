@@ -18,9 +18,20 @@ export class InventoryService {
   ) {}
 
   async checkStock(orderItems: { productId: string; quantity: number }[]) {
+    if (!Array.isArray(orderItems)) {
+      throw new HttpException(
+        'Invalid orderItems: Expected an array',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     for (const item of orderItems) {
-      const product = await this.getProductAvailability(item.productId);
-      if (!product || product.quantity < item.quantity) {
+      try {
+        const product = await this.getProductAvailability(item.productId);
+        if (product.quantity < item.quantity) {
+          return { isInStock: false, details: item };
+        }
+      } catch (error) {
+        console.error(error);
         return { isInStock: false, details: item };
       }
     }
@@ -40,8 +51,8 @@ export class InventoryService {
       console.log(product);
       return product;
     } catch (error) {
-      console.error(error);
-      throw new NotFoundException('Product not found or not available');
+      // console.error(error);
+      throw new NotFoundException('Product not found or not available', error);
     }
   }
 
@@ -59,11 +70,18 @@ export class InventoryService {
   }
 
   async updateInventory(productId: string, quantity: number): Promise<Product> {
-    const product = await this.productRepository.findOneByOrFail({
-      id: productId,
-    });
-    product.quantity = quantity;
-    return this.productRepository.save(product);
+    try {
+      const product = await this.productRepository.findOneByOrFail({
+        id: productId,
+      });
+      product.quantity = quantity;
+      return await this.productRepository.save(product);
+    } catch (error) {
+      throw new NotFoundException(
+        `Product with ID ${productId} not found`,
+        error,
+      );
+    }
   }
 
   async UpdateProductQuantity(
